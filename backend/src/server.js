@@ -35,27 +35,10 @@ app.use(helmet({
   },
 }));
 // allow all origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://modex-ai-resume-frontend.vercel.app'
-];
+
 
 app.use(cors({
-  origin: function (origin, callback) {
-    // allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) ||
-                     origin.endsWith('.vercel.app');
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: ["*"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
