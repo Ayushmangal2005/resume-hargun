@@ -69,6 +69,11 @@ app.use(requestLogger);
 // ─── Static Files ─────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// ─── Test Endpoint ────────────────────────────────────────────────────────
+app.get('/api/test', (_req, res) => {
+  res.json({ success: true, message: 'API is working!', timestamp: new Date().toISOString() });
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   const start = Date.now();
