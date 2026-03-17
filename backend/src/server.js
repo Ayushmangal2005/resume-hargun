@@ -17,7 +17,7 @@ const shareRoutes = require('./routes/share');
 
 const app = express();
 
-// ─── Security Middleware ───────────────────────────────────────────────────
+// ─── Security Middlewares ───────────────────────────────────────────────────
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
