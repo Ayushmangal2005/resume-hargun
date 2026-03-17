@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const { body, validationResult } = require('express-validator');
 const { query, getClient } = require('../models/db');
 const { authenticate } = require('../middleware/auth');
@@ -11,18 +10,8 @@ const { auditLog } = require('../middleware/auditLog');
 const logger = require('../utils/logger');
 
 // ─── Multer config ────────────────────────────────────────────────────────
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.userId}-${Date.now()}${ext}`);
-  },
-});
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = ['.pdf', '.doc', '.docx'];
@@ -267,7 +256,7 @@ router.post('/upload/parse', (req, res, next) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const filePath = req.file.path;
+    const fileBuffer = req.file.buffer;
     let text = '';
     const ext = req.file.originalname.toLowerCase();
     logger.info('Processing file upload', { fileName: req.file.originalname, ext, size: req.file.size });
@@ -275,12 +264,11 @@ router.post('/upload/parse', (req, res, next) => {
     // Extract text from document
     if (ext.endsWith('.pdf')) {
       const pdfParse = require('pdf-parse');
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdfParse(dataBuffer);
+      const pdfData = await pdfParse(fileBuffer);
       text = pdfData.text;
     } else if (ext.endsWith('.docx')) {
       const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ path: filePath });
+      const result = await mammoth.extractRawText({ buffer: fileBuffer });
       text = result.value;
     } else {
       text = `[Unsupported file format: ${req.file.originalname}]`;
@@ -292,9 +280,6 @@ router.post('/upload/parse', (req, res, next) => {
       return res.status(400).json({ error: 'Failed to extract text from resume. Please ensure the file is not a scanned image or corrupted.' });
     }
 
-    // Clean up file
-    fs.unlinkSync(filePath);
-
     res.json({
       success: true,
       extractedText: text.substring(0, 10000), // limit
@@ -302,9 +287,6 @@ router.post('/upload/parse', (req, res, next) => {
     });
   } catch (error) {
     logger.error('Upload parse error:', error);
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
     res.status(500).json({ error: 'Failed to parse resume file' });
   }
 });
