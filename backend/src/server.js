@@ -34,7 +34,7 @@ app.use(helmet({
     },
   },
 }));
-// allow all origins
+// allow all originss
 
 
 app.use(cors({
